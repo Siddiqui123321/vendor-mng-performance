@@ -1,7 +1,9 @@
 from rest_framework import generics
 from rest_framework.response import Response
 from .models import Vendor, PurchaseOrder
-from .serializers import VendorSerializer, PurchaseOrderSerializer, VendorPerformanceSerializer
+from .serializers import VendorSerializer, PurchaseOrderSerializer
+from rest_framework import status
+from django.utils import timezone
 
 class VendorListCreateView(generics.ListCreateAPIView):
     queryset = Vendor.objects.all()
@@ -24,8 +26,6 @@ class PurchaseOrderRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIVie
 # special api view
 
 
-
-
 class VendorPerformanceView(generics.RetrieveAPIView):
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
@@ -39,3 +39,22 @@ class VendorPerformanceView(generics.RetrieveAPIView):
             'fulfillment_rate': instance.fulfillment_rate,
         }
         return Response(performance_data)
+
+# extra api
+
+class AcknowledgePurchaseOrderView(generics.UpdateAPIView):
+    queryset = PurchaseOrder.objects.all()
+    serializer_class = PurchaseOrderSerializer
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        # Update acknowledgment_date
+        instance.acknowledgment_date = timezone.now()
+        instance.save()
+
+        # Trigger the recalculation of average_response_time
+        instance.calculate_average_response_time()
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)

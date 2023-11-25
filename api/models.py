@@ -12,6 +12,9 @@ class Vendor(models.Model):
     average_response_time = models.FloatField(default=0.0)
     fulfillment_rate = models.FloatField(default=0.0)
 
+    def __str__(self):
+        return self.name
+
 
 
 class PurchaseOrder(models.Model):
@@ -27,66 +30,74 @@ class PurchaseOrder(models.Model):
     acknowledgment_date = models.DateTimeField(null=True, blank=True)
 
 
-# On-Time Delivery Rate:
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+
         if self.status == 'completed':
-            completed_orders = PurchaseOrder.objects.filter(
-                vendor=self.vendor, status='completed'
-            )
-            on_time_orders = completed_orders.filter(
-                delivery_date__lte=F('acknowledgment_date')
-            )
-            on_time_delivery_rate = (
-                on_time_orders.count() / completed_orders.count()
-            ) * 100 if completed_orders.count() > 0 else 0.0
-            self.vendor.on_time_delivery_rate = on_time_delivery_rate
+            self.calculate_on_time_delivery_rate()
+            self.calculate_quality_rating_avg()
+            self.calculate_average_response_time()
+            self.calculate_fulfillment_rate()
+
+    def calculate_on_time_delivery_rate(self):
+        completed_orders = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='completed',
+            delivery_date__lte=models.F('acknowledgment_date')
+        ).count()
+
+        all_completed_orders = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='completed'
+        ).count()
+
+        self.vendor.on_time_delivery_rate = (completed_orders / all_completed_orders) * 100
+        self.vendor.save()
+
+    def calculate_quality_rating_avg(self):
+        completed_orders = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='completed',
+            quality_rating__isnull=False
+        )
+
+        total_rating = sum(order.quality_rating for order in completed_orders)
+        num_orders = completed_orders.count()
+
+        if num_orders > 0:
+            self.vendor.quality_rating_avg = total_rating / num_orders
             self.vendor.save()
 
-# Quality Rating Average:
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.quality_rating is not None and self.status == 'completed':
-            completed_orders = PurchaseOrder.objects.filter(
-                vendor=self.vendor, status='completed'
-            )
-            quality_ratings = completed_orders.exclude(quality_rating=None).values_list(
-                'quality_rating', flat=True
-            )
-            quality_rating_avg = (
-                sum(quality_ratings) / len(quality_ratings)
-            ) if len(quality_ratings) > 0 else 0.0
-            self.vendor.quality_rating_avg = quality_rating_avg
-            self.vendor.save()
+    def calculate_average_response_time(self):
+        completed_orders = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='completed',
+            acknowledgment_date__isnull=False
+        )
 
-# Average Response Time:
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.acknowledgment_date is not None:
-            response_times = PurchaseOrder.objects.filter(
-                vendor=self.vendor, acknowledgment_date__isnull=False
-            ).values_list('acknowledgment_date', 'issue_date')
+        response_times = [(order.acknowledgment_date - order.issue_date).seconds for order in completed_orders]
 
-            average_response_time = (
-                sum((ack_date - issue_date).total_seconds() for ack_date, issue_date in response_times)
-                / len(response_times)
-            ) if len(response_times) > 0 else 0.0
-
+        if response_times:
+            average_response_time = sum(response_times) / len(response_times)
             self.vendor.average_response_time = average_response_time
             self.vendor.save()
 
-# Fulfillment Rate:
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        all_orders = PurchaseOrder.objects.filter(vendor=self.vendor)
-        successful_orders = all_orders.filter(status='completed', quality_rating__isnull=False)
-        fulfillment_rate = (
-            (successful_orders.count() / all_orders.count()) * 100
-        ) if all_orders.count() > 0 else 0.0
+    def calculate_fulfillment_rate(self):
+        successful_orders = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='completed',
+            quality_rating__isnull=True
+        ).count()
 
-        self.vendor.fulfillment_rate = fulfillment_rate
-        self.vendor.save()
+        all_completed_orders = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='completed'
+        ).count()
 
+        if all_completed_orders > 0:
+            fulfillment_rate = (successful_orders / all_completed_orders) * 100
+            self.vendor.fulfillment_rate = fulfillment_rate
+            self.vendor.save()
 
 class HistoricalPerformance(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
