@@ -49,8 +49,9 @@ class PurchaseOrder(models.Model):
             status='completed'
         ).count()
 
-        self.vendor.on_time_delivery_rate = (completed_orders / all_completed_orders) * 100
-        self.vendor.save()
+        if all_completed_orders > 0:
+            self.vendor.on_time_delivery_rate = (completed_orders / all_completed_orders) * 100
+            self.vendor.save()
 
     def calculate_quality_rating_avg(self):
         # Calculate quality rating average for the vendor
@@ -75,7 +76,10 @@ class PurchaseOrder(models.Model):
             issue_date__isnull=False
         )
 
-        response_times = [(order.acknowledgment_date - order.issue_date).seconds for order in completed_orders]
+        response_times = [(order.acknowledgment_date - order.issue_date).seconds 
+        for order in completed_orders
+        if order.acknowledgment_date and order.issue_date  # Check for missing data
+        ]
 
         if response_times:
             average_response_time = sum(response_times) / len(response_times)
@@ -108,7 +112,7 @@ class PurchaseOrder(models.Model):
         ).count()
 
         # Check if the number of completed orders is a multiple of 5
-        if completed_orders_count % 5 == 0:
+        if completed_orders_count > 0 and completed_orders_count % 5 == 0:
             HistoricalPerformance.objects.create(
                 vendor=self.vendor,
                 date=timezone.now(),
