@@ -59,29 +59,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 https://github.com/Siddiqui123321/vendor-mng-performance.git
 
 ## Project Structure
-vms/                          # Project directory
-|-- api/                      # Main app for your project
-|   |-- admin.py              # Django admin configurations
-|   |-- migrations/           # Database migration files
-|   |-- __init__.py
-|   |-- apps.py               # App configuration
-|   |-- models.py             # Database models (Vendor, PurchaseOrder, HistoricalPerformance)
-|   |-- signals.py            # Django signals for post-save actions
-|   |-- serializers.py        # Django REST Framework serializers
-|   |-- tests.py              # Unit tests (if any)
-|   |-- urls.py               # URL patterns for the app
-|   |-- views.py              # API views for Vendor and PurchaseOrder
-|-- vms/                      # Project settings and configurations
-|   |-- __init__.py
-|   |-- asgi.py               # ASGI config for channels
-|   |-- settings.py           # Django settings and configurations
-|   |-- urls.py               # Main URL patterns for the project
-|   |-- wsgi.py               # WSGI config for deployment
-|-- db.sqlite3                # SQLite database file
-|-- manage.py                 # Django management script
-|-- requirements.txt          # List of project dependencies
-|-- .gitignore                # Git ignore file
-
+vms/ # Project directory |-- api/ # Main app for your project | |-- admin.py # Django admin configurations | |-- migrations/ # Database migration files | |-- init.py | |-- apps.py # App configuration | |-- models.py # Database models (Vendor, PurchaseOrder, HistoricalPerformance) | |-- signals.py # Django signals for post-save actions | |-- serializers.py # Django REST Framework serializers | |-- tests.py # Unit tests (if any) | |-- urls.py # URL patterns for the app | |-- views.py # API views for Vendor and PurchaseOrder |-- vms/ # Project settings and configurations | |-- init.py | |-- asgi.py # ASGI config for channels | |-- settings.py # Django settings and configurations | |-- urls.py # Main URL patterns for the project | |-- wsgi.py # WSGI config for deployment |-- db.sqlite3 # SQLite database file |-- manage.py # Django management script |-- requirements.txt # List of project dependencies |-- .gitignore # Git ignore file
 
 ## API Models
 
