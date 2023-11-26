@@ -37,6 +37,7 @@ class PurchaseOrder(models.Model):
         
 
     def calculate_on_time_delivery_rate(self):
+        # Calculate on-time delivery rate for the vendor
         completed_orders = PurchaseOrder.objects.filter(
             vendor=self.vendor,
             status='completed',
@@ -52,6 +53,7 @@ class PurchaseOrder(models.Model):
         self.vendor.save()
 
     def calculate_quality_rating_avg(self):
+        # Calculate quality rating average for the vendor
         completed_orders = PurchaseOrder.objects.filter(
             vendor=self.vendor,
             status='completed',
@@ -66,6 +68,7 @@ class PurchaseOrder(models.Model):
             self.vendor.save()
 
     def calculate_average_response_time(self):
+        # Calculate average response time for the vendor
         completed_orders = PurchaseOrder.objects.filter(
             vendor=self.vendor,
             acknowledgment_date__isnull=False,
@@ -80,6 +83,7 @@ class PurchaseOrder(models.Model):
             self.vendor.save()
 
     def calculate_fulfillment_rate(self):
+        # Calculate fulfillment rate for the vendor
         successful_orders = PurchaseOrder.objects.filter(
             vendor=self.vendor,
             status='completed'
@@ -97,6 +101,7 @@ class PurchaseOrder(models.Model):
 
 
     def create_historical_performance(self):
+        # Create historical performance record after every 5 completed orders
         completed_orders_count = PurchaseOrder.objects.filter(
             vendor=self.vendor,
             status='completed',
@@ -113,7 +118,7 @@ class PurchaseOrder(models.Model):
                 fulfillment_rate=self.vendor.fulfillment_rate
             )
 
-
+# HistoricalPerformance model to store historical performance data
 class HistoricalPerformance(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     date = models.DateTimeField()

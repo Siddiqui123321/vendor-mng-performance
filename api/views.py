@@ -10,26 +10,27 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
 
+
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 class YourProtectedView(APIView):
     def get(self, request):
+        # A protected view requiring JWT authentication and permission
         return Response({'message': 'This is a protected view.'})
 
 
-
-
-
-
 class VendorListCreateView(generics.ListCreateAPIView):
+    # API view to list and create Vendor objects
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
 
 class VendorRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    # API view to retrieve, update, and delete Vendor objects
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
 
 class PurchaseOrderListCreateView(generics.ListCreateAPIView):
+    # API view to list and create PurchaseOrder objects
     serializer_class = PurchaseOrderSerializer
 
     def get_queryset(self):
@@ -44,19 +45,20 @@ class PurchaseOrderListCreateView(generics.ListCreateAPIView):
         return queryset
 
 class PurchaseOrderRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    # API view to retrieve, update, and delete PurchaseOrder objects
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
 
 
 
 # special api view
-
-
 class VendorPerformanceView(generics.RetrieveAPIView):
+    # API view to retrieve performance metrics for a Vendor
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
 
     def retrieve(self, request, *args, **kwargs):
+        # Retrieve performance metrics for a specific Vendor
         instance = self.get_object()
         performance_data = {
             'on_time_delivery_rate': instance.on_time_delivery_rate,
@@ -67,8 +69,8 @@ class VendorPerformanceView(generics.RetrieveAPIView):
         return Response(performance_data)
 
 # extra api
-
 class AcknowledgePurchaseOrderView(generics.UpdateAPIView):
+    # API view to acknowledge a PurchaseOrder and trigger recalculation
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
 
