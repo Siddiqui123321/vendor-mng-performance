@@ -16,8 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+# Define the URL patterns for the entire project
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("api/", include('api.urls'))
+    path('admin/', admin.site.urls),  
+    path("api/", include('api.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Obtain JWT token endpoint
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Refresh JWT token endpoint
 ]
+
+# to obtain token we can send post request on this
+# POST /api/token/
+# Content-Type: application/json
+
+# {
+#     "username": "your_username",
+#     "password": "your_password"
+# }

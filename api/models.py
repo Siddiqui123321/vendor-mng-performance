@@ -1,7 +1,10 @@
 from django.db import models
 from django.db.models import F, Count
 from datetime import timedelta
+from django.utils import timezone
 
+
+# vendor model with required fields
 class Vendor(models.Model):
     name = models.CharField(max_length=255)
     contact_details = models.TextField()
@@ -16,7 +19,7 @@ class Vendor(models.Model):
         return self.name
 
 
-
+# purchase order model with required fields and methods for computing performance
 class PurchaseOrder(models.Model):
     po_number = models.CharField(unique=True, max_length=50)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
@@ -26,18 +29,12 @@ class PurchaseOrder(models.Model):
     quantity = models.IntegerField()
     status = models.CharField(max_length=50)
     quality_rating = models.FloatField(null=True, blank=True)
-    issue_date = models.DateTimeField()
+    issue_date = models.DateTimeField(null=True, blank=True)
     acknowledgment_date = models.DateTimeField(null=True, blank=True)
 
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
-        if self.status == 'completed':
-            self.calculate_on_time_delivery_rate()
-            self.calculate_quality_rating_avg()
-            self.calculate_average_response_time()
-            self.calculate_fulfillment_rate()
+    def __str__(self):
+        return f'{self.po_number} - {self.vendor} - {self.status}'
+        
 
     def calculate_on_time_delivery_rate(self):
         completed_orders = PurchaseOrder.objects.filter(
@@ -71,8 +68,8 @@ class PurchaseOrder(models.Model):
     def calculate_average_response_time(self):
         completed_orders = PurchaseOrder.objects.filter(
             vendor=self.vendor,
-            status='completed',
-            acknowledgment_date__isnull=False
+            acknowledgment_date__isnull=False,
+            issue_date__isnull=False
         )
 
         response_times = [(order.acknowledgment_date - order.issue_date).seconds for order in completed_orders]
@@ -85,19 +82,37 @@ class PurchaseOrder(models.Model):
     def calculate_fulfillment_rate(self):
         successful_orders = PurchaseOrder.objects.filter(
             vendor=self.vendor,
-            status='completed',
-            quality_rating__isnull=True
-        ).count()
-
-        all_completed_orders = PurchaseOrder.objects.filter(
-            vendor=self.vendor,
             status='completed'
         ).count()
 
-        if all_completed_orders > 0:
-            fulfillment_rate = (successful_orders / all_completed_orders) * 100
+        cancelled_orders = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='cancelled'
+        ).count()
+
+        if (cancelled_orders+ successful_orders) > 0:
+            fulfillment_rate = (successful_orders / (cancelled_orders+ successful_orders)) * 100
             self.vendor.fulfillment_rate = fulfillment_rate
             self.vendor.save()
+
+
+    def create_historical_performance(self):
+        completed_orders_count = PurchaseOrder.objects.filter(
+            vendor=self.vendor,
+            status='completed',
+        ).count()
+
+        # Check if the number of completed orders is a multiple of 5
+        if completed_orders_count % 5 == 0:
+            HistoricalPerformance.objects.create(
+                vendor=self.vendor,
+                date=timezone.now(),
+                on_time_delivery_rate=self.vendor.on_time_delivery_rate,
+                quality_rating_avg=self.vendor.quality_rating_avg,
+                average_response_time=self.vendor.average_response_time,
+                fulfillment_rate=self.vendor.fulfillment_rate
+            )
+
 
 class HistoricalPerformance(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
@@ -107,3 +122,5 @@ class HistoricalPerformance(models.Model):
     average_response_time = models.FloatField()
     fulfillment_rate = models.FloatField()
 
+    def __str__(self):
+        return f'{self.vendor} - {self.date}'

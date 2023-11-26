@@ -5,6 +5,22 @@ from .serializers import VendorSerializer, PurchaseOrderSerializer
 from rest_framework import status
 from django.utils import timezone
 
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import authentication_classes, permission_classes
+
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+class YourProtectedView(APIView):
+    def get(self, request):
+        return Response({'message': 'This is a protected view.'})
+
+
+
+
+
+
 class VendorListCreateView(generics.ListCreateAPIView):
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
@@ -14,8 +30,18 @@ class VendorRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = VendorSerializer
 
 class PurchaseOrderListCreateView(generics.ListCreateAPIView):
-    queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
+
+    def get_queryset(self):
+        queryset = PurchaseOrder.objects.all()
+
+        # Check if vendor_id is provided in the query parameters
+        vendor_id = self.request.query_params.get('vendor_id', None)
+        if vendor_id:
+            # Filter by vendor_id if it's provided
+            queryset = queryset.filter(vendor__id=vendor_id)
+
+        return queryset
 
 class PurchaseOrderRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseOrder.objects.all()
